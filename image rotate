@@ -1,0 +1,100 @@
+using System;
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using static UnityEditor.Progress;
+
+public class Control : MonoBehaviour
+{
+    [SerializeField] Vector2Int centre;
+    [SerializeField] Vector2Int sizeMy;
+    [SerializeField] float angle;
+    [SerializeField] SpriteRenderer srInit;
+    [SerializeField] GameObject oTarget;
+    [SerializeField] GameObject targetPrefab;
+    Texture2D texInit;
+    Texture2D texTarget;
+    Vector2Int size;
+    Color[,] image;
+
+    Color[,] RotateImageAngle(Color[,] image, float angle, Vector2Int centre)
+    {
+        //mySize = new Vector2Int(image.GetLength(0), image.GetLength(1));
+        Color[,] rotatedImage = new Color[image.GetLength(0), image.GetLength(1)];
+        float rAngle = angle * Mathf.PI/180;
+        float sin = Mathf.Sin(rAngle);
+        float cos = Mathf.Cos(rAngle);
+        for (int x = 0; x < image.GetLength(0); x++)
+        {
+            for (int y = 0; y < image.GetLength(1); y++)
+            {
+                Vector2Int myVector = new Vector2Int(x,y);
+                myVector -= centre;
+                int x2 = Mathf.RoundToInt(myVector.x * cos- myVector.y * sin)+ centre.x;
+                int y2 = Mathf.RoundToInt(myVector.x * sin + myVector.y * cos)+ centre.y;
+                if (x2 >= 0 && x2 < image.GetLength(0) && y2 >= 0 && y2 < image.GetLength(1))
+                {
+                    rotatedImage[x, y] = image[x2, y2];
+                }
+            }
+        }
+        return rotatedImage;
+    }
+
+    private void Start()
+    {
+        GetColorsFromImage();
+        SetTargetObject();
+    }
+
+    public void ButtonRotateTargetImage()
+    {
+        var colors = RotateImageAngle(image, angle, centre);
+        SetTargetImage(colors);
+    }
+
+    void GetColorsFromImage()
+    {
+        Texture2D texture = srInit.sprite.texture;
+        var colors = texture.GetPixels();
+        size = new Vector2Int(texture.width, texture.height);
+        image = new Color[size.x, size.y];
+        for (int x = 0; x < size.x; x++)
+        {
+            for (int y = 0; y < size.y; y++)
+            {
+                int ind = x + y * size.x;
+                image[x, y] = colors[ind];
+            }
+        }
+    }
+
+    void SetTargetObject()
+    {
+        var oSp = Instantiate(targetPrefab, Vector3.zero, Quaternion.identity);
+        oSp.transform.parent = oTarget.transform;
+        oSp.transform.localPosition = Vector3.zero;
+        oSp.transform.localEulerAngles = Vector3.zero;
+        var texture = new Texture2D(size.x, size.y);
+        //texture.filterMode = options3D.filterMode;
+        var sp = Sprite.Create(texture, new Rect(0, 0, size.x, size.y), Vector2.one * 0.5f, 100);
+        oSp.GetComponent<SpriteRenderer>().sprite = sp;
+        texTarget = sp.texture;
+    }
+
+    void SetTargetImage(Color[,] image)
+    {
+        var colors = new Color[size.x * size.y];
+        for (int x = 0; x < size.x; x++)
+        {
+            for (int y = 0; y < size.y; y++)
+            {
+                int ind = x + y * size.x;
+                colors[ind] = image[x, y];
+            }
+        }
+        texTarget.SetPixels(colors);
+        texTarget.Apply();
+    }
+
+}
